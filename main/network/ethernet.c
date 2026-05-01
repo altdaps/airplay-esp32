@@ -1,6 +1,6 @@
 #include "sdkconfig.h"
 
-#ifdef CONFIG_ETH_W5500_ENABLED
+#if defined(CONFIG_ETH_W5500_ENABLED) || defined(CONFIG_ETH_RTL8201_ENABLED)
 
 #include "ethernet.h"
 
@@ -8,14 +8,20 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "driver/gpio.h"
+#if defined(CONFIG_ETH_W5500_ENABLED)
 #include "driver/spi_master.h"
+#endif
 #include "esp_eth.h"
 #include "esp_eth_mac.h"
-#include "esp_eth_mac_spi.h"
+#if defined(CONFIG_ETH_RTL8201_ENABLED)
+#include "esp_eth_mac_esp.h"
+#endif
 #include "esp_eth_netif_glue.h"
 #include "esp_eth_phy.h"
 #include "esp_mac.h"
+#if defined(CONFIG_ETH_W5500_ENABLED)
 #include "iot_board.h"
+#endif
 
 #include <string.h>
 
@@ -69,12 +75,6 @@ esp_err_t ethernet_init(void) {
     return ESP_OK;
   }
 
-  // Verify SPI bus is ready (board.c must have initialized it)
-  if (iot_board_get_handle(BOARD_SPI_ETH_ID) == NULL) {
-    ESP_LOGE(TAG, "SPI bus not initialized — cannot init W5500");
-    return ESP_ERR_INVALID_STATE;
-  }
-
   // Ensure netif and event loop are initialized
   esp_err_t ret = esp_netif_init();
   if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
@@ -94,6 +94,13 @@ esp_err_t ethernet_init(void) {
   // Create default ethernet netif
   esp_netif_config_t netif_cfg = ESP_NETIF_DEFAULT_ETH();
   s_eth_netif = esp_netif_new(&netif_cfg);
+
+#if defined(CONFIG_ETH_W5500_ENABLED)
+  // Verify SPI bus is ready (board.c must have initialized it)
+  if (iot_board_get_handle(BOARD_SPI_ETH_ID) == NULL) {
+    ESP_LOGE(TAG, "SPI bus not initialized — cannot init W5500");
+    return ESP_ERR_INVALID_STATE;
+  }
 
   // Hardware reset the W5500 before SPI communication
 #if BOARD_ETH_RST_GPIO >= 0
@@ -149,6 +156,45 @@ esp_err_t ethernet_init(void) {
     s_eth_netif = NULL;
     return ESP_FAIL;
   }
+#elif defined(CONFIG_ETH_RTL8201_ENABLED)
+  eth_esp32_emac_config_t esp32_mac_config = {0};
+  esp32_mac_config.smi_gpio.mdc_num = CONFIG_ETH_RTL8201_MDC_GPIO;
+  esp32_mac_config.smi_gpio.mdio_num = CONFIG_ETH_RTL8201_MDIO_GPIO;
+  esp32_mac_config.interface = EMAC_DATA_INTERFACE_RMII;
+  esp32_mac_config.clock_config.rmii.clock_mode = EMAC_CLK_EXT_IN;
+  esp32_mac_config.clock_config.rmii.clock_gpio =
+      (emac_rmii_clock_gpio_t)CONFIG_ETH_RTL8201_RMII_CLK_GPIO;
+  esp32_mac_config.dma_burst_len = ETH_DMA_BURST_LEN_32;
+  esp32_mac_config.intr_priority = 0;
+  esp32_mac_config.mdc_freq_hz = 0;
+
+  ESP_LOGI(TAG,
+           "RTL8201 RMII Ethernet using default ESP32 RMII pin mapping; custom data pin configuration is not supported by this SDK.");
+
+  eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
+  mac_config.rx_task_stack_size = 4096;
+  esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&esp32_mac_config, &mac_config);
+  if (mac == NULL) {
+    ESP_LOGE(TAG, "Failed to create ESP32 RMII MAC");
+    esp_netif_destroy(s_eth_netif);
+    s_eth_netif = NULL;
+    return ESP_FAIL;
+  }
+
+  eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
+  phy_config.phy_addr = CONFIG_ETH_RTL8201_PHY_ADDR;
+  phy_config.reset_gpio_num = CONFIG_ETH_RTL8201_RST_GPIO;
+  esp_eth_phy_t *phy = esp_eth_phy_new_rtl8201(&phy_config);
+  if (phy == NULL) {
+    ESP_LOGE(TAG, "Failed to create RTL8201 PHY");
+    mac->del(mac);
+    esp_netif_destroy(s_eth_netif);
+    s_eth_netif = NULL;
+    return ESP_FAIL;
+  }
+#else
+  return ESP_ERR_NOT_SUPPORTED;
+#endif
 
   // Install Ethernet driver
   esp_eth_config_t eth_config = ETH_DEFAULT_CONFIG(mac, phy);
@@ -162,7 +208,6 @@ esp_err_t ethernet_init(void) {
     return ret;
   }
 
-  // W5500 has no factory MAC — derive one from the ESP32's base MAC
   uint8_t eth_mac[6];
   esp_read_mac(eth_mac, ESP_MAC_ETH);
   esp_eth_ioctl(s_eth_handle, ETH_CMD_S_MAC_ADDR, eth_mac);
@@ -180,8 +225,19 @@ esp_err_t ethernet_init(void) {
     return ret;
   }
 
+#if defined(CONFIG_ETH_W5500_ENABLED)
   ESP_LOGI(TAG, "W5500 Ethernet initialized (CS=%d, INT=%d, RST=%d)",
            BOARD_ETH_CS_GPIO, BOARD_ETH_INT_GPIO, BOARD_ETH_RST_GPIO);
+#elif defined(CONFIG_ETH_RTL8201_ENABLED)
+  ESP_LOGI(TAG,
+           "RTL8201 RMII Ethernet initialized (MDC=%d, MDIO=%d, CLK=%d, TX_EN=%d, TXD0=%d, TXD1=%d, CRS_DV=%d, RXD0=%d, RXD1=%d, PHYADDR=%d, RST=%d)",
+           CONFIG_ETH_RTL8201_MDC_GPIO, CONFIG_ETH_RTL8201_MDIO_GPIO,
+           CONFIG_ETH_RTL8201_RMII_CLK_GPIO, CONFIG_ETH_RTL8201_TX_EN_GPIO,
+           CONFIG_ETH_RTL8201_TXD0_GPIO, CONFIG_ETH_RTL8201_TXD1_GPIO,
+           CONFIG_ETH_RTL8201_CRS_DV_GPIO, CONFIG_ETH_RTL8201_RXD0_GPIO,
+           CONFIG_ETH_RTL8201_RXD1_GPIO, CONFIG_ETH_RTL8201_PHY_ADDR,
+           CONFIG_ETH_RTL8201_RST_GPIO);
+#endif
   return ESP_OK;
 }
 

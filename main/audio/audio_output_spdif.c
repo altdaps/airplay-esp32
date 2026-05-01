@@ -137,7 +137,7 @@ static uint32_t *spdif_ptr;
 /* ── Volume ────────────────────────────────────────────────────────────── */
 
 static void apply_volume(int16_t *buf, size_t n) {
-#ifndef CONFIG_DAC_CONTROLS_VOLUME
+#if !defined(CONFIG_DAC_CONTROLS_VOLUME) || defined(CONFIG_BOARD_SQUEEZEAMP_4M)
   int32_t vol = airplay_get_volume_q15();
   for (size_t i = 0; i < n; i++) {
     buf[i] = (int16_t)(((int32_t)buf[i] * vol) >> 15);

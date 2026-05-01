@@ -78,7 +78,7 @@ dependencies:
     - esp32p4
     version: 0.17.0~2
   espressif/usb_device_uac:
-    component_hash: 13667b2253ee8ff633c9995b6a20eea791e598ea386f833a952410e31d3a53ff
+    component_hash: 82945e531acffb895e886d4b417d250ce8c0d331204b2a5518e21a7f727e6340
     dependencies:
     - name: espressif/cmake_utilities
       registry_url: https://components.espressif.com
@@ -98,11 +98,11 @@ dependencies:
     - esp32s2
     - esp32s3
     - esp32p4
-    version: 1.2.2
+    version: 1.2.3
   idf:
     source:
       type: idf
-    version: 5.5.2
+    version: 5.5.3
   lvgl/lvgl:
     component_hash: 184e532558c1c45fefed631f3e235423d22582aafb4630f3e8885c35281a49ae
     dependencies: []

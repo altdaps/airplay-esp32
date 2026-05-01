@@ -59,8 +59,8 @@ if(CONFIG_BT_A2DP_ENABLE)
     list(APPEND SRC_FILES "audio/a2dp_sink.c")
 endif()
 
-# W5500 SPI Ethernet
-if(CONFIG_ETH_W5500_ENABLED)
+# W5500 SPI Ethernet or RTL8201 RMII Ethernet
+if(CONFIG_ETH_W5500_ENABLED OR CONFIG_ETH_RTL8201_ENABLED)
     list(APPEND SRC_FILES "network/ethernet.c")
 endif()
 

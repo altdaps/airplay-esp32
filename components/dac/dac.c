@@ -22,9 +22,15 @@ esp_err_t dac_deinit(void) {
 }
 
 void dac_set_volume(float volume_db) {
+#if defined(CONFIG_BOARD_SQUEEZEAMP_4M)
+  (void)volume_db;
+#elif defined(CONFIG_DAC_CONTROLS_VOLUME)
   if (s_ops && s_ops->set_volume) {
     s_ops->set_volume(volume_db);
   }
+#else
+  (void)volume_db;
+#endif
 }
 
 void dac_set_power_mode(dac_power_mode_t mode) {

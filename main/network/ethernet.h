@@ -4,7 +4,7 @@
 #include "sdkconfig.h"
 #include <stdbool.h>
 
-#ifdef CONFIG_ETH_W5500_ENABLED
+#if defined(CONFIG_ETH_W5500_ENABLED) || defined(CONFIG_ETH_RTL8201_ENABLED)
 
 esp_err_t ethernet_init(void);
 bool ethernet_is_connected(void);
@@ -12,7 +12,7 @@ bool ethernet_is_link_up(void);
 esp_err_t ethernet_get_ip_str(char *ip_str, size_t len);
 void ethernet_get_mac_str(char *mac_str, size_t len);
 
-#else // !CONFIG_ETH_W5500_ENABLED
+#else // !CONFIG_ETH_W5500_ENABLED && !CONFIG_ETH_RTL8201_ENABLED
 
 static inline esp_err_t ethernet_init(void) {
   return ESP_ERR_NOT_SUPPORTED;

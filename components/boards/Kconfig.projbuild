@@ -213,6 +213,92 @@ menu "Board Configuration"
                 depends on ETH_W5500_ENABLED
                 help
                     GPIO for W5500 hardware reset. Set to -1 to disable.
+
+            config ETH_RTL8201_ENABLED
+                bool "Enable RTL8201 RMII Ethernet"
+                default n
+                depends on IDF_TARGET_ESP32 && !ETH_W5500_ENABLED
+                help
+                    Enable native RMII Ethernet using the RTL8201 PHY.
+                    Requires RMII clock, MDC/MDIO, and data pins to be configured.
+
+            config ETH_RTL8201_PHY_ADDR
+                int "RTL8201 PHY address"
+                default 0
+                depends on ETH_RTL8201_ENABLED
+                help
+                    PHY address for the RTL8201 on the MDIO bus.
+
+            config ETH_RTL8201_RST_GPIO
+                int "RTL8201 Reset GPIO"
+                default -1
+                depends on ETH_RTL8201_ENABLED
+                help
+                    GPIO for RTL8201 hardware reset. Set to -1 to disable.
+
+            config ETH_RTL8201_MDC_GPIO
+                int "RTL8201 MDC GPIO"
+                default 23
+                depends on ETH_RTL8201_ENABLED
+                help
+                    GPIO used for the MDIO clock line.
+
+            config ETH_RTL8201_MDIO_GPIO
+                int "RTL8201 MDIO GPIO"
+                default 18
+                depends on ETH_RTL8201_ENABLED
+                help
+                    GPIO used for the MDIO data line.
+
+            config ETH_RTL8201_RMII_CLK_GPIO
+                int "RTL8201 RMII clock GPIO"
+                default 0
+                depends on ETH_RTL8201_ENABLED
+                help
+                    GPIO used to receive the external RMII reference clock from the PHY.
+                    ESP32 only supports GPIO0 for external RMII clock input.
+
+            config ETH_RTL8201_TX_EN_GPIO
+                int "RTL8201 TX_EN GPIO"
+                default 21
+                depends on ETH_RTL8201_ENABLED
+                help
+                    GPIO used for RMII TX enable.
+
+            config ETH_RTL8201_TXD0_GPIO
+                int "RTL8201 TXD0 GPIO"
+                default 19
+                depends on ETH_RTL8201_ENABLED
+                help
+                    GPIO used for RMII TXD0.
+
+            config ETH_RTL8201_TXD1_GPIO
+                int "RTL8201 TXD1 GPIO"
+                default 22
+                depends on ETH_RTL8201_ENABLED
+                help
+                    GPIO used for RMII TXD1.
+
+            config ETH_RTL8201_CRS_DV_GPIO
+                int "RTL8201 CRS_DV GPIO"
+                default 17
+                depends on ETH_RTL8201_ENABLED
+                help
+                    GPIO used for RMII CRS_DV.
+
+            config ETH_RTL8201_RXD0_GPIO
+                int "RTL8201 RXD0 GPIO"
+                default 16
+                depends on ETH_RTL8201_ENABLED
+                help
+                    GPIO used for RMII RXD0.
+
+            config ETH_RTL8201_RXD1_GPIO
+                int "RTL8201 RXD1 GPIO"
+                default 4
+                depends on ETH_RTL8201_ENABLED
+                help
+                    GPIO used for RMII RXD1.
         endmenu
 
     endmenu
